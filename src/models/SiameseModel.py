@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn 
 
 
-class SiameseNetModel():
+class SiameseNetModel(nn.Module):
     def __init__(self, architecture, input_dim):
         super(SiameseNetModel, self).__init__()
         self.architecture = architecture
@@ -20,6 +20,7 @@ class SiameseNetModel():
     def single_forward(self, x: torch.Tensor):
         for layer in self.layers:
             x = layer(x)
+        return x
 
     def forward(self, x1, x2):
         out1 = self.single_forward(x1)

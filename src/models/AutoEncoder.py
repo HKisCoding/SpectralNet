@@ -30,6 +30,9 @@ class AutoEncoderModel(nn.Module):
             current_dim = next_dim
         self.decoder.append(nn.Sequential(nn.Linear(current_dim, last_dim)))
 
+        print ("encoder: ", self.encoder)
+        print ("decoder: ", self.decoder)
+
     def encode(self, x: torch.Tensor) -> torch.Tensor:
         for layer in self.encoder:
             x = layer(x)

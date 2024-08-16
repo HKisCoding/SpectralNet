@@ -41,7 +41,7 @@ class SpectralNetModel(nn.Module):
         return w
     
 
-    def forward(self, x: torch.Tensor):
+    def forward(self, x: torch.Tensor, should_update_orth_weights: bool = True):
         """
         Forward pass of the model
 
@@ -56,7 +56,8 @@ class SpectralNetModel(nn.Module):
             x = layer(x)
 
         Y_tilde = x
-        self.orthonorm_weights = self.orthonormalize(Y_tilde)
+        if should_update_orth_weights:
+            self.orthonorm_weights = self.orthonormalize(Y_tilde)
 
         Y = Y_tilde @ self.orthonorm_weights
         return Y
