@@ -34,7 +34,7 @@ class MetaFewShotClustering(nn.Module):
         ).to(device = self.device)
         
         self.optimizer = optim.Adam([
-                        {'params': self.inner_loop_optimizer.parameters()},
+                        {'params': self.model.parameters()},
                         {'params': self.regularizer.parameters()},
                     ], lr=self.config.get("meta_learning_rate"), amsgrad=False)
         self.scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer=self.optimizer, T_max=self.total_epochs,
