@@ -41,6 +41,9 @@ class SpectralNet:
         spectral_n_nbg: int = 30,
         spectral_scale_k: int = 15,
         spectral_is_local_scale: bool = True,
+        weights_dir: str = "spectralnet\\_trainers\\weights",
+        ae_weights: str = "spectralnet\\_trainers\\weights\\ae_weights.pth",
+        siamese_weights: str = "spectralnet\\_trainers\\weights\\siamese_weights.pth"
     ):
         """SpectralNet is a class for implementing a Deep learning model that performs spectral clustering.
         This model optionally utilizes Autoencoders (AE) and Siamese networks for training.
@@ -152,6 +155,9 @@ class SpectralNet:
         self.spectral_is_local_scale = spectral_is_local_scale
         self.spectral_batch_size = spectral_batch_size
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.weights_dir = weights_dir
+        self.ae_weights = ae_weights
+        self.siamese_weights = siamese_weights
 
         self._validate_spectral_hiddens()
 
@@ -183,6 +189,8 @@ class SpectralNet:
             "min_lr": self.ae_min_lr,
             "patience": self.ae_patience,
             "batch_size": self.ae_batch_size,
+            "weights_dir": self.weights_dir,
+            "ae_weights": self.ae_weights
         }
 
         siamese_config = {
@@ -195,6 +203,7 @@ class SpectralNet:
             "n_nbg": self.siamese_n_nbg,
             "use_approx": self.siamese_use_approx,
             "batch_size": self.siamese_batch_size,
+            "siamese_weights": self.siamese_weights
         }
 
         spectral_config = {

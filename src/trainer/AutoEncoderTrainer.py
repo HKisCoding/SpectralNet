@@ -20,8 +20,8 @@ class AETrainer:
         self.patience = self.ae_config["patience"]
         self.architecture = self.ae_config["hiddens"]
         self.batch_size = self.ae_config["batch_size"]
-        self.weights_dir = "spectralnet/_trainers/weights"
-        self.weights_path = "spectralnet/_trainers/weights/ae_weights.pth"
+        self.weights_dir = self.ae_conig["weights_dir"]
+        self.weights_path = self.ae_config["ae_weights"]
         if not os.path.exists(self.weights_dir):
             os.makedirs(self.weights_dir)
 
