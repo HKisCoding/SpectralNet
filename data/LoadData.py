@@ -1,4 +1,5 @@
 import h5py
+from scipy.io import loadmat 
 import numpy as np 
 from sklearn.model_selection import train_test_split
 
@@ -6,7 +7,7 @@ import torch
 from torch.utils.data import random_split, DataLoader, Subset
 from torchvision import datasets, transforms
 
-from ClusterDataset import ImageDataset
+from data.ClusterDataset import ImageDataset
 
 
 def load_mnist():
@@ -50,6 +51,19 @@ def load_Caltech():
     return x_train, y_train, x_test, y_test
 
 
+def get_feature_labels(feature_path, labels_path):
+    X = torch.load(feature_path)
+    y = torch.load(labels_path)
+
+    return X, y
+
+
+def get_prokaryotic(path):
+    data = loadmat(r'dataset/prokaryotic.mat')
+    label = data['truth'][:,0]
+    feature = data['gene_repert']
+
+    return torch.tensor(feature).float(), torch.Tensor(label)
 
 if __name__ == "__main__":
     x_train, y_train, x_test, y_test = load_Caltech()

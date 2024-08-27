@@ -10,6 +10,7 @@ from sklearn.neighbors import kneighbors_graph
 from utils.utils import *
 from utils.loss import SpectralNetLoss
 from src.models.SpectralNet import SpectralNetModel
+from src.models.MetaScaleModel import MetaScaleModel
 
 
 class SpectralNetTrainer():
@@ -55,6 +56,8 @@ class SpectralNetTrainer():
 
         print("Training SpectralNet:")
         t = trange(self.epochs, leave=True)
+        total_train_loss = []
+        total_val_loss = []
         for epoch in t:
             train_loss = 0.0
             for (X_grad, _), (X_orth, _) in zip(train_loader, ortho_loader):
@@ -101,8 +104,100 @@ class SpectralNetTrainer():
                     train_loss, valid_loss, current_lr
                 )
             )
+            total_train_loss.append(train_loss)
+            total_val_loss.append(valid_loss)
             t.refresh()
+        train_result = {"train_loss": total_train_loss, 
+                        "val_loss": total_val_loss}
+        
+        plot_loss(train_result)
+        
+        return self.spectral_net
+    
 
+    def metalearning_inner_train(self, X: torch.Tensor, y: torch.Tensor, scale: float):
+        self.counter = 0
+        self.criterion = SpectralNetLoss()
+
+        self.spectral_net = SpectralNetModel(
+            self.architecture, input_dim=self.X.shape[1]
+        ).to(self.device)
+
+        self.meta_model = MetaScaleModel(input_dim = self.X.shape[1]).to(self.device)
+
+        self.optimizer = optim.Adam([
+            {'params': self.spectral_net.parameters()},
+            {'params': self.meta_model.parameters()}], 
+            lr=self.lr, amsgrad=False)
+
+        self.scheduler = optim.lr_scheduler.ReduceLROnPlateau(
+            self.optimizer, mode="min", factor=self.lr_decay, patience=self.patience
+        )
+
+
+        print("Training SpectralNet:")
+        t = trange(self.epochs, leave=True)
+        total_train_loss = []
+        total_val_loss = []
+        for epoch in t:
+            train_loss = 0.0
+            # Flatten the input tensor
+            X_support, y_support, X_target, y_target = self._meta_data_loader(X, y)
+
+            scale = self.meta_model(X_support)
+
+            self.X = X_target.view(X_target.size(0), -1)
+            self.y = y_target
+            train_loader, ortho_loader, valid_loader = self._get_data_loader()
+            for (X_grad, _), (X_orth, _) in zip(train_loader, ortho_loader):
+                X_grad = X_grad.to(device=self.device)
+                X_grad = X_grad.view(X_grad.size(0), -1)
+                X_orth = X_orth.to(device=self.device)
+                X_orth = X_orth.view(X_orth.size(0), -1)
+
+                if self.is_sparse:
+                    X_grad = make_batch_for_sparse_grapsh(X_grad)
+                    X_orth = make_batch_for_sparse_grapsh(X_orth)
+
+                # Orthogonalization step
+                self.spectral_net.eval()
+                self.spectral_net(X_orth, True)
+
+                # Gradient step
+                self.spectral_net.train()
+                self.optimizer.zero_grad()
+
+                Y = self.spectral_net(X_grad, False)
+
+                W = self.create_affingity_matrix_from_scale(X_grad, scale)
+
+                loss = self.criterion(W, Y)
+                loss.backward()
+                self.optimizer.step()
+                train_loss += loss.item()
+
+            train_loss /= len(train_loader)
+
+            # Validation step
+            valid_loss = self.validate(valid_loader)
+            self.scheduler.step(valid_loss)
+
+            current_lr = self.optimizer.param_groups[0]["lr"]
+            if current_lr <= self.spectral_config["min_lr"]:
+                break
+            t.set_description(
+                "Train Loss: {:.7f}, Valid Loss: {:.7f}, LR: {:.6f}".format(
+                    train_loss, valid_loss, current_lr
+                )
+            )
+            total_train_loss.append(train_loss)
+            total_val_loss.append(valid_loss)
+            t.refresh()
+        train_result = {"train_loss": total_train_loss, 
+                        "val_loss": total_val_loss}
+        
+        plot_loss(train_result)
+        
         return self.spectral_net
     
 
@@ -129,6 +224,18 @@ class SpectralNetTrainer():
 
         valid_loss /= len(valid_loader)
         return valid_loss
+    
+
+    def create_affingity_matrix_from_scale(self, X: torch.Tensor, scale: float) -> torch.Tensor:
+        is_local = self.is_local_scale
+        n_neighbors = self.n_nbg
+        Dx = torch.cdist(X, X)
+        Dis, indices = get_nearest_neighbors(X, k=n_neighbors + 1)
+        # scale = compute_scale(Dis, k=scale, is_local=is_local)
+        W = get_gaussian_kernel(
+            Dx, scale, indices, device=self.device, is_local=is_local
+        )
+        return W
     
 
     def _get_affinity_matrix(self, X: torch.Tensor) -> torch.Tensor:
@@ -177,3 +284,22 @@ class SpectralNetTrainer():
             valid_dataset, batch_size=self.batch_size, shuffle=False
         )
         return train_loader, ortho_loader, valid_loader
+    
+
+    def _meta_data_loader(self, X ,y) -> tuple:
+        if self.y is None:
+            self.y = torch.zeros(len(X))
+        indices = torch.randperm(len(y))
+    
+        # Split indices
+        support_indices = indices[:len(X) * 0.3]
+        target_indices = indices[len(X) * 0.3:]
+        
+        # Create support and target sets
+        X_support = self.X[support_indices]
+        y_support = self.y[support_indices]
+        X_target = self.X[target_indices]
+        y_target = self.y[target_indices]
+        
+        return X_support, y_support, X_target, y_target
+        

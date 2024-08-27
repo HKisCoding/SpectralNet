@@ -1,9 +1,10 @@
 import os
 import torch
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
-
+import seaborn as sns
 from annoy import AnnoyIndex
 from sklearn.neighbors import NearestNeighbors
 
@@ -540,3 +541,19 @@ def create_weights_dir():
     """
     if not os.path.exists("weights"):
         os.makedirs("weights")
+
+
+def plot_loss(train_result: dict):
+    df = pd.DataFrame(train_result)
+
+    # Create the plot
+    plt.figure(figsize=(10, 6))
+    sns.lineplot(data=df)
+
+    # Customize the plot
+    plt.title('Training and Validation Loss')
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+
+    # Show the plot
+    plt.show()

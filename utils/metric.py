@@ -1,5 +1,6 @@
 import numpy as np
 import sklearn.metrics as metrics
+from collections import Counter
 
 from munkres import Munkres
 from sklearn.metrics import normalized_mutual_info_score as nmi
@@ -70,3 +71,38 @@ def nmi_score_metric(cluster_assignments: np.ndarray, y: np.ndarray) -> float:
         indicates a better clustering performance. The computed NMI score is returned as a floating-point value.
         """
         return nmi(cluster_assignments, y)
+
+
+def purity_score_metrics(y_true: np.ndarray, y_pred: np.ndarray):
+    # Convert to numpy arrays if not already
+    y_true = np.array(y_true)
+    y_pred = np.array(y_pred)
+    
+    # Ensure the arrays have the same shape
+    assert y_pred.size == y_true.size
+    
+    # Calculate the cluster sizes
+    cluster_sizes = Counter(y_pred)
+    
+    # Initialize purity
+    purity = 0
+    
+    # Iterate through each cluster
+    for cluster in set(y_pred):
+        # Get the indices of points in this cluster
+        cluster_indices = np.where(y_pred == cluster)[0]
+        
+        # Count the true labels in this cluster
+        true_labels = y_true[cluster_indices]
+        cluster_label_distribution = Counter(true_labels)
+        
+        # Find the most common label in the cluster
+        max_count = max(cluster_label_distribution.values())
+        
+        # Add to purity
+        purity += max_count
+    
+    # Divide by total number of samples
+    purity /= len(y_true)
+    
+    return purity

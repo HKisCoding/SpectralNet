@@ -20,7 +20,7 @@ class AETrainer:
         self.patience = self.ae_config["patience"]
         self.architecture = self.ae_config["hiddens"]
         self.batch_size = self.ae_config["batch_size"]
-        self.weights_dir = self.ae_conig["weights_dir"]
+        self.weights_dir = self.ae_config["weights_dir"]
         self.weights_path = self.ae_config["ae_weights"]
         if not os.path.exists(self.weights_dir):
             os.makedirs(self.weights_dir)

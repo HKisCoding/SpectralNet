@@ -42,3 +42,5 @@ class ImageDataset(Dataset):
             features = self.resnet(image_tensor.unsqueeze(0)).cpu().numpy()[0]
 
         return features, label
+
+    

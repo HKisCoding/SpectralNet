@@ -41,9 +41,9 @@ class SpectralNet:
         spectral_n_nbg: int = 30,
         spectral_scale_k: int = 15,
         spectral_is_local_scale: bool = True,
-        weights_dir: str = "spectralnet\\_trainers\\weights",
-        ae_weights: str = "spectralnet\\_trainers\\weights\\ae_weights.pth",
-        siamese_weights: str = "spectralnet\\_trainers\\weights\\siamese_weights.pth"
+        weights_dir: str = "spectralnet/_trainers/weights",
+        ae_weights: str = "spectralnet/_trainers/weights/ae_weights.pth",
+        siamese_weights: str = "spectralnet/_trainers/weights/siamese_weights.pth"
     ):
         """SpectralNet is a class for implementing a Deep learning model that performs spectral clustering.
         This model optionally utilizes Autoencoders (AE) and Siamese networks for training.
@@ -240,6 +240,47 @@ class SpectralNet:
             config=spectral_config, device=self.device, is_sparse=is_sparse
         )
         self.spec_net = self.spectral_trainer.train(X, y, self.siamese_net)
+
+    
+    def fit_metalearning(self, X: torch.Tensor, y: torch.Tensor = None):
+        self._X = X
+        ae_config = {
+            "hiddens": self.ae_hiddens,
+            "epochs": self.ae_epochs,
+            "lr": self.ae_lr,
+            "lr_decay": self.ae_lr_decay,
+            "min_lr": self.ae_min_lr,
+            "patience": self.ae_patience,
+            "batch_size": self.ae_batch_size,
+            "weights_dir": self.weights_dir,
+            "ae_weights": self.ae_weights
+        }
+        spectral_config = {
+            "hiddens": self.spectral_hiddens,
+            "epochs": self.spectral_epochs,
+            "lr": self.spectral_lr,
+            "lr_decay": self.spectral_lr_decay,
+            "min_lr": self.spectral_min_lr,
+            "patience": self.spectral_patience,
+            "n_nbg": self.spectral_n_nbg,
+            "scale_k": self.spectral_scale_k,
+            "is_local_scale": self.spectral_is_local_scale,
+            "batch_size": self.spectral_batch_size,
+        }
+        if self.should_use_ae:
+            self.ae_trainer = AETrainer(config=ae_config, device=self.device)
+            self.ae_net = self.ae_trainer.train(X)
+            X = self.ae_trainer.embed(X)
+
+        is_sparse = self.is_sparse_graph
+        if is_sparse:
+            build_ann(X)
+
+        self.spectral_trainer = SpectralNetTrainer(
+            config=spectral_config, device=self.device, is_sparse=is_sparse
+        )
+
+
 
     def predict(self, X: torch.Tensor) -> np.ndarray:
         """Predicts the cluster assignments for the given data.
