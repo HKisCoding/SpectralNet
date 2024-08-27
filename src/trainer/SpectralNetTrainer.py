@@ -115,15 +115,15 @@ class SpectralNetTrainer():
         return self.spectral_net
     
 
-    def metalearning_inner_train(self, X: torch.Tensor, y: torch.Tensor, scale: float):
+    def metalearning_inner_train(self, X: torch.Tensor, y: torch.Tensor):
         self.counter = 0
         self.criterion = SpectralNetLoss()
 
         self.spectral_net = SpectralNetModel(
-            self.architecture, input_dim=self.X.shape[1]
+            self.architecture, input_dim=X.shape[1]
         ).to(self.device)
 
-        self.meta_model = MetaScaleModel(input_dim = self.X.shape[1]).to(self.device)
+        self.meta_model = MetaScaleModel(input_dim = X.shape[1]).to(self.device)
 
         self.optimizer = optim.Adam([
             {'params': self.spectral_net.parameters()},
@@ -287,19 +287,21 @@ class SpectralNetTrainer():
     
 
     def _meta_data_loader(self, X ,y) -> tuple:
-        if self.y is None:
-            self.y = torch.zeros(len(X))
+        if y is None:
+            y = torch.zeros(len(X))
         indices = torch.randperm(len(y))
+
+        ratio = int(len(X) * 0.3)
     
         # Split indices
-        support_indices = indices[:len(X) * 0.3]
-        target_indices = indices[len(X) * 0.3:]
+        support_indices = indices[:ratio]
+        target_indices = indices[ratio:]
         
         # Create support and target sets
-        X_support = self.X[support_indices]
-        y_support = self.y[support_indices]
-        X_target = self.X[target_indices]
-        y_target = self.y[target_indices]
+        X_support = X[support_indices]
+        y_support = y[support_indices]
+        X_target = X[target_indices]
+        y_target = y[target_indices]
         
         return X_support, y_support, X_target, y_target
         
