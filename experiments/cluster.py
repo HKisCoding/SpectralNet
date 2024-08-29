@@ -22,9 +22,9 @@ def main():
         siamese_epochs = 100,
         siamese_hiddens = [1024, 1024, 512, n_clusters],
         spectral_epochs= 500,
-        spectral_scale_k= 20,
-        spectral_is_local_scale = False,
-        spectral_batch_size = 1000,
+        # spectral_scale_k= 20,
+        spectral_is_local_scale = True,
+        spectral_batch_size = 2000,
         spectral_hiddens = [1024, 1024, 512, n_clusters]
     )
     spectralnet.fit(X, y)

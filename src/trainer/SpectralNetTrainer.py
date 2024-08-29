@@ -134,7 +134,7 @@ class SpectralNetTrainer():
             self.optimizer, mode="min", factor=self.lr_decay, patience=self.patience
         )
 
-
+        self.siamese_net = None
         print("Training SpectralNet:")
         t = trange(self.epochs, leave=True)
         total_train_loss = []
@@ -145,6 +145,7 @@ class SpectralNetTrainer():
             X_support, y_support, X_target, y_target = self._meta_data_loader(X, y)
 
             scale = self.meta_model(X_support)
+            scale = scale.view(-1).mean().item()
 
             self.X = X_target.view(X_target.size(0), -1)
             self.y = y_target
@@ -179,7 +180,7 @@ class SpectralNetTrainer():
             train_loss /= len(train_loader)
 
             # Validation step
-            valid_loss = self.validate(valid_loader)
+            valid_loss = self.meta_validate(valid_loader, scale)
             self.scheduler.step(valid_loss)
 
             current_lr = self.optimizer.param_groups[0]["lr"]
@@ -199,6 +200,31 @@ class SpectralNetTrainer():
         plot_loss(train_result)
         
         return self.spectral_net
+    
+
+    def meta_validate(self, valid_loader: DataLoader, scale) -> float:
+        valid_loss = 0.0
+        self.spectral_net.eval()
+        with torch.no_grad():
+            for batch in valid_loader:
+                X, y = batch
+                X, y = X.to(self.device), y.to(self.device)
+
+                if self.is_sparse:
+                    X = make_batch_for_sparse_grapsh(X)
+
+                Y = self.spectral_net(X, False)
+                with torch.no_grad():
+                    if self.siamese_net is not None:
+                        X = self.siamese_net.single_forward(X)
+                
+                W = self.create_affingity_matrix_from_scale(X, scale)
+
+                loss = self.criterion(W, Y)
+                valid_loss += loss.item()
+
+        valid_loss /= len(valid_loader)
+        return valid_loss
     
 
     def validate(self, valid_loader: DataLoader) -> float:

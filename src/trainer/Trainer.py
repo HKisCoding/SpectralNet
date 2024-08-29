@@ -280,6 +280,8 @@ class SpectralNet:
             config=spectral_config, device=self.device, is_sparse=is_sparse
         )
 
+        self.spec_net = self.spectral_trainer.metalearning_inner_train(X, y)
+
 
 
     def predict(self, X: torch.Tensor) -> np.ndarray:

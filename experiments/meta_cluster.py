@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 
-from data.LoadData import get_feature_labels, get_prokaryotic
+from data.LoadData import get_feature_labels, get_prokaryotic, load_mnist
 
 from utils.metric import acc_score_metric, nmi_score_metric, purity_score_metrics
 # from spectralnet import SpectralNet
@@ -9,10 +9,21 @@ from src.trainer.Trainer import SpectralNet
 
 
 def main():
-    feature_path = "dataset\\MRSC_Feature.pt"
-    labels_path = "dataset\\MRSC_Feature.pt"
-    X, y = get_feature_labels(feature_path, labels_path)
+    # feature_path = "dataset/Caltech_101_Feature.pt"
+    # labels_path = "dataset/Caltech_101_label.pt"
+    # X, y = get_feature_labels(feature_path, labels_path)
     # X, y = get_prokaryotic(path = "dataset/prokaryotic.mat")
+
+    x_train, y_train, x_test, y_test = load_mnist()
+
+    X = torch.cat([x_train, x_test])
+    X = X.view(X.size(0), -1)
+
+    if y_train is not None:
+        y = torch.cat([y_train, y_test])
+    else:
+        y = None
+
     n_clusters  = len(torch.unique(y))
     spectralnet = SpectralNet(
         n_clusters=n_clusters,
@@ -24,7 +35,7 @@ def main():
         spectral_epochs= 500,
         spectral_scale_k= 20,
         spectral_is_local_scale = False,
-        spectral_batch_size = 1000,
+        spectral_batch_size = 2048,
         spectral_hiddens = [1024, 1024, 512, n_clusters]
     )
     spectralnet.fit_metalearning(X, y)
