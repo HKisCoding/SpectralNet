@@ -110,7 +110,7 @@ class SpectralNetTrainer():
         train_result = {"train_loss": total_train_loss, 
                         "val_loss": total_val_loss}
         
-        plot_loss(train_result)
+        # plot_loss(train_result)
         
         return self.spectral_net
     
@@ -197,7 +197,7 @@ class SpectralNetTrainer():
         train_result = {"train_loss": total_train_loss, 
                         "val_loss": total_val_loss}
         
-        plot_loss(train_result)
+        # plot_loss(train_result)
         
         return self.spectral_net
     
