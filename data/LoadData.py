@@ -2,6 +2,8 @@ import h5py
 from scipy.io import loadmat 
 import numpy as np 
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
+import pandas as pd
 
 import torch
 from torch.utils.data import random_split, DataLoader, Subset
@@ -65,5 +67,22 @@ def get_prokaryotic(path):
 
     return torch.tensor(feature).float(), torch.Tensor(label)
 
+
+def get_colon_cancer(path):
+    data = pd.read_csv(path, index_col=0)
+    data = data.dropna().reset_index(drop = True)
+    enc = LabelEncoder()
+    label = enc.fit_transform(data['Dukes Stage'].to_numpy())
+    data['Gender'] = enc.fit_transform(data['Gender'].to_numpy())
+    data['Location'] = enc.fit_transform(data['Location'].to_numpy())
+    feature = data.drop(['ID_REF', 'Dukes Stage'], axis = 1)
+
+    return torch.tensor(feature.to_numpy()).float(), torch.Tensor(label)
+
+
+
 if __name__ == "__main__":
-    x_train, y_train, x_test, y_test = load_Caltech()
+    # x_train, y_train, x_test, y_test = load_Caltech()
+    X, y = get_colon_cancer("dataset\colon_cancer\colon_cancer.csv")
+
+    print (X.shape, y.shape)
